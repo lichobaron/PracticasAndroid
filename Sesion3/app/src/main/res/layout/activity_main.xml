@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <Button
+        android:id="@+id/OK"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OK"  />
+
+    <EditText
+        android:id="@+id/porcentaje"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number" />
+    <EditText
+        android:id="@+id/numero"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number" />
+    <Button
+        android:id="@+id/calcular"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Calcular"  />
+    <TextView
+        android:id="@+id/resultado"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+    <EditText
+        android:id="@+id/mensaje"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+    <Button
+        android:id="@+id/actividad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ir a actividad 2"  />
+    <Button
+        android:id="@+id/mylog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Log"  />
+</LinearLayout>
