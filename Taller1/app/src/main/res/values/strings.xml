@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Taller1</string>
+    <string name="title_activity_result_fib">ResultFibActivity</string>
+</resources>
