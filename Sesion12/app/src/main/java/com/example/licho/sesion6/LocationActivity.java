@@ -69,7 +69,7 @@ public class LocationActivity extends AppCompatActivity {
                     latitud.setText("Latitude: " + String.valueOf(location.getLatitude()));
                     longitud.setText("Longitude: " + String.valueOf(location.getLongitude()));
                     elevacion.setText("Altitude: " + String.valueOf(location.getAltitude()));
-                    airport(location.getLatitude(), location.getLongitude());
+                    home(location.getLatitude(), location.getLongitude());
                 }
             }
         };
@@ -209,9 +209,9 @@ public class LocationActivity extends AppCompatActivity {
         return Math.round(result*100.0)/100.0;
     }
 
-    private void airport(double lat1, double lat2){
-        double dist = distance(lat1,lat2,4.7010009,-74.144710);
-        distanciaAeropuerto.setText("Distancia al aeropuerto: " + String.valueOf(dist)+ " km");
+    private void home(double lat1, double lat2){
+        double dist = distance(lat1,lat2,4.653039,-74.088227);
+        distanciaAeropuerto.setText("Distancia a mi casa: " + String.valueOf(dist)+ " km");
     }
 
 }
