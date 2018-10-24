@@ -11,6 +11,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +34,19 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
 public class LocationActivity extends AppCompatActivity {
 
     final static int MY_PERMISSIONS_REQUEST_LOCATION = 1;
@@ -40,9 +57,14 @@ public class LocationActivity extends AppCompatActivity {
     TextView longitud;
     TextView elevacion;
     TextView distanciaAeropuerto;
+    ListView listUbicaciones;
+    Button buttonGuardarLocation;
+
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
+    private Location mCurrentLocation;
+    private JSONArray localizaciones;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +75,28 @@ public class LocationActivity extends AppCompatActivity {
         longitud = (TextView) findViewById(R.id.longitud);
         elevacion = (TextView) findViewById(R.id.elevacion);
         distanciaAeropuerto = (TextView) findViewById(R.id.distanciaAeropuerto);
+        listUbicaciones = (ListView) findViewById(R.id.listUbicaciones);
+        buttonGuardarLocation = (Button) findViewById(R.id.buttonGuardarLocation);
+        localizaciones = new JSONArray();
+        ArrayList<MyLocation> arrayLocation =  new ArrayList<MyLocation>();
+        final LocationAdapter adapter = new LocationAdapter(this, arrayLocation);
+        listUbicaciones.setAdapter(adapter);
+
+        buttonGuardarLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try{
+                    writeJSONObject();
+                    ArrayList<MyLocation> newArrayLocation =  getLocationsFromJSONArray(localizaciones);
+                    System.out.println(newArrayLocation);
+                    adapter.clear();
+                    adapter.addAll(newArrayLocation);
+                }
+                catch (Exception e){
+                    System.out.println(e);
+                }
+            }
+        });
 
         requestPermission(this, Manifest.permission.ACCESS_FINE_LOCATION, "Se necesita acceder a los ubicacion", MY_PERMISSIONS_REQUEST_LOCATION);
 
@@ -66,6 +110,7 @@ public class LocationActivity extends AppCompatActivity {
                 Location location = locationResult.getLastLocation();
                 //Log.i(“LOCATION", "Location update in the callback: " + location);
                 if (location != null) {
+                    mCurrentLocation = location;
                     latitud.setText("Latitude: " + String.valueOf(location.getLatitude()));
                     longitud.setText("Longitude: " + String.valueOf(location.getLongitude()));
                     elevacion.setText("Altitude: " + String.valueOf(location.getAltitude()));
@@ -214,4 +259,39 @@ public class LocationActivity extends AppCompatActivity {
         distanciaAeropuerto.setText("Distancia a mi casa: " + String.valueOf(dist)+ " km");
     }
 
+    private void writeJSONObject(){
+        MyLocation myLocation = new MyLocation();
+        myLocation.setFecha(new Date(System.currentTimeMillis()));
+        myLocation.setLatitud(mCurrentLocation.getLatitude());
+        myLocation.setLongitud(mCurrentLocation.getLongitude());
+        localizaciones.put(myLocation.toJSON());
+        Writer output = null;
+        String filename= "locations.json";
+        try {
+            File file = new File(getBaseContext().getExternalFilesDir(null), filename);
+            Log.i("LOCATION", "Ubicacion de archivo: "+file);
+            output = new BufferedWriter(new FileWriter(file));
+            output.write(localizaciones.toString());
+            output.close();
+            Toast.makeText(getApplicationContext(), "Location saved",
+                    Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private  ArrayList<MyLocation> getLocationsFromJSONArray(JSONArray array) throws JSONException, ParseException {
+        ArrayList<MyLocation> list =new ArrayList<MyLocation>();
+
+        for(int i=0; i< array.length();i++){
+            MyLocation auxLocation = new MyLocation();
+            auxLocation.setLatitud(Double.parseDouble(array.getJSONObject(i).getString("latitud")));
+            auxLocation.setLongitud(Double.parseDouble(array.getJSONObject(i).getString("longitud")));
+            //SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm");
+            //auxLocation.setFecha(sdf.parse(array.getJSONObject(i).getString("date")));
+            list.add(auxLocation);
+        }
+
+        return list;
+    }
 }
