@@ -37,13 +37,18 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Date;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -52,18 +57,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     final static int RADIUS_OF_EARTH_KM =  6371;
 
     public static final double lowerLeftLatitude = 4.497712;
-    public static final double lowerLeftLongitude= -74.242971;
-    public static final double upperRightLatitude= 4.763589;
-    public static final double upperRigthLongitude= -74.003313;
+    public static final double lowerLeftLongitude = -74.242971;
+    public static final double upperRightLatitude = 4.763589;
+    public static final double upperRigthLongitude = -74.003313;
 
     private GoogleMap mMap;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
     private Geocoder mGeocoder;
+    private Location location;
+    private MarkerOptions actualMarkerOptions;
+    private Marker actualMarker;
+    private MarkerOptions myMarkerOptions;
+    private Marker myMarker;
 
     EditText editLocation;
-    TextView textDistancia;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,14 +81,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
 
         editLocation = (EditText) findViewById(R.id.editLocation);
-        textDistancia = (TextView) findViewById(R.id.textDistancia);
 
         requestPermission(this, Manifest.permission.ACCESS_FINE_LOCATION,
                 "Se necesita acceder a los ubicacion", MY_PERMISSIONS_REQUEST_LOCATION);
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        //turnLocation();
 
         mLocationRequest = createLocationRequest();
 
@@ -87,23 +93,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        /*mLocationCallback = new LocationCallback() {
+        actualMarkerOptions = new MarkerOptions();
+
+        actualMarkerOptions
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.person))
+                .title("Actual");
+
+        mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                Location location = locationResult.getLastLocation();
+                location = locationResult.getLastLocation();
+                changeMap();
                 //Log.i(“LOCATION", "Location update in the callback: " + location);
                 if (location != null && mMap != null) {
                     LatLng actualPosition = new LatLng(location.getLatitude(),location.getLongitude());
-                    mMap.addMarker(new MarkerOptions()
-                            .position(actualPosition)
-                            .icon(BitmapDescriptorFactory
-                                    .fromResource(R.drawable.person)));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(actualPosition));
+                    actualMarkerOptions.position(actualPosition);
+                    actualMarker.setPosition(actualPosition);
+                    //actualMarker = mMap.addMarker(actualMarkerOptions);
+                    //mMap.moveCamera(CameraUpdateFactory.newLatLng(actualPosition));
                 }
             }
-        };*/
+        };
 
         turnLocation();
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+
+        myMarkerOptions = new MarkerOptions();
 
         editLocation.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -112,14 +131,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     String addressString = editLocation.getText().toString();
                     if (!addressString.isEmpty()) {
                         try {
-                            List<Address> addresses = mGeocoder.getFromLocationName(addressString, 2);
+                            List<Address> addresses = mGeocoder.getFromLocationName(addressString, 2,
+                                    lowerLeftLatitude, lowerLeftLongitude,
+                                    upperRightLatitude, upperRigthLongitude);
                             if (addresses != null && !addresses.isEmpty()) {
                                 Address addressResult = addresses.get(0);
                                 LatLng position = new LatLng(addressResult.getLatitude(), addressResult.getLongitude());
-                                if (mMap != null) {
-                                    MarkerOptions myMarkerOptions = new MarkerOptions();
+                                if (mMap != null && location != null) {
                                     myMarkerOptions.position(position);
-                                    myMarkerOptions.title("Dirección Encontrada");
+                                    myMarkerOptions.title(editLocation.getText().toString());
+                                    myMarkerOptions.snippet(
+                                            distanceTo(location.getLatitude(),location.getLongitude(), addressResult.getLatitude(), addressResult.getLongitude())
+                                    );
                                     myMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
                                     mMap.addMarker(myMarkerOptions);
                                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 15));
@@ -166,6 +189,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.getUiSettings().setRotateGesturesEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(true);
+        changeMap();
+        loadLocation();
 
         // Add a marker in Sydney and move the camera
         /*LatLng miCasa = new LatLng(4.653039, -74.088227);
@@ -186,7 +211,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         public void onSuccess(Location location) {
                             if (location != null && mMap != null) {
                                 LatLng actualPosition = new LatLng(location.getLatitude(),location.getLongitude());
-                                mMap.addMarker(new MarkerOptions().position(actualPosition).title("Actual"));
+                                actualMarkerOptions.position(actualPosition);
+                                actualMarker = mMap.addMarker(actualMarkerOptions);
                                 mMap.moveCamera(CameraUpdateFactory.newLatLng(actualPosition));
                             }
                         }});
@@ -243,6 +269,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SettingsClient client = LocationServices.getSettingsClient(this);
         Task<LocationSettingsResponse> task = client.checkLocationSettings(builder.build());
 
+        //loadLocation();
+
         task.addOnSuccessListener(this, new OnSuccessListener<LocationSettingsResponse>() {
             @Override
             public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
@@ -298,9 +326,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return Math.round(result*100.0)/100.0;
     }
 
-    private void distanceTo(double lat1, double lat2, double lat3, double lat4,String name){
+    private String distanceTo(double lat1, double lat2, double lat3, double lat4){
         double dist = distance(lat1,lat2,lat3,lat4);
-        textDistancia.setText("Distancia a: "+ name + String.valueOf(dist)+ " km");
+        return "Distancia: " + String.valueOf(dist)+ " km.";
+    }
+
+    private int getHourOftheDay(){
+        Date date = new Date();
+        Calendar calendar = GregorianCalendar.getInstance();    // gets the current month
+        calendar.setTime(date);   // assigns calendar to given date
+        return calendar.get(Calendar.HOUR_OF_DAY); // 24 hour format
+    }
+
+    private void changeMap(){
+        if(getHourOftheDay() <= 6 || getHourOftheDay() >= 18){
+            mMap.setMapStyle(MapStyleOptions
+                    .loadRawResourceStyle(this, R.raw.night_map));
+        }
+        else{
+            mMap.setMapStyle(MapStyleOptions
+                    .loadRawResourceStyle(this, R.raw.day_map));
+        }
     }
 
 

@@ -22,11 +22,5 @@ android:layout_height="fill_parent">
         android:inputType="textPersonName"
         android:textColorLink="@color/common_google_signin_btn_text_dark_focused" />
 
-    <TextView
-        android:id="@+id/textDistancia"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="500dp"
-        android:textColor="@color/common_google_signin_btn_text_dark_focused" />
 </FrameLayout>
 
