@@ -106,9 +106,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FirebaseDatabase database;
     private DatabaseReference myRef;
 
-    private  ArrayList<MyLocation> jsonLocations;
-
-
     EditText editLocation;
     TextView infoUser;
 
@@ -120,7 +117,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mAuth = FirebaseAuth.getInstance();
         database= FirebaseDatabase.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
-        jsonLocations = new ArrayList<MyLocation>();
 
         requestPermission(this, Manifest.permission.ACCESS_FINE_LOCATION,
                 "Se necesita acceder a los ubicacion", MY_PERMISSIONS_REQUEST_LOCATION);
@@ -214,33 +210,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         stopLocationUpdates();
     }
 
-    private void loadLocations() {
-        myRef = database.getReference(PATH_LOCATIONS);
-        myRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                MarkerOptions myMarkerJsonOptions = new MarkerOptions();
-                myMarkerJsonOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-                for (DataSnapshot singleSnapshot : dataSnapshot.getChildren()) {
-                    MyLocation myLocation = singleSnapshot.getValue(MyLocation.class);
-
-                    myMarkerJsonOptions.title(myLocation.getName());
-                    myMarkerJsonOptions.position(new LatLng(myLocation.getLatitude(),myLocation.getLongitude()));
-                    mMap.addMarker(myMarkerJsonOptions);
-                }
-                Log.i("HELLLLLLP", jsonLocations.toString());
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.w("Firebase database", "error en la consulta", databaseError.toException());
-            }
-        });
-    }
-
-    private void addLocationsFromJson(){
-
-    }
-
 
     /**
      * Manipulates the map once available.
@@ -272,7 +241,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         */
     }
-    
+
     private void requestPermission(Activity context, String permission, String explanation, int requestId ){
         if (ContextCompat.checkSelfPermission(context,permission)!= PackageManager.PERMISSION_GRANTED) {
             // Should we show an explanation?   
@@ -420,6 +389,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.setMapStyle(MapStyleOptions
                     .loadRawResourceStyle(this, R.raw.day_map));
         }
+    }
+
+    private void loadLocations() {
+        myRef = database.getReference(PATH_LOCATIONS);
+        myRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                MarkerOptions myMarkerJsonOptions = new MarkerOptions();
+                myMarkerJsonOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                for (DataSnapshot singleSnapshot : dataSnapshot.getChildren()) {
+                    MyLocation myLocation = singleSnapshot.getValue(MyLocation.class);
+                    myMarkerJsonOptions.title(myLocation.getName());
+                    myMarkerJsonOptions.position(new LatLng(myLocation.getLatitude(),myLocation.getLongitude()));
+                    mMap.addMarker(myMarkerJsonOptions);
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w("Firebase database", "error en la consulta", databaseError.toException());
+            }
+        });
     }
 
     private void getPointsFromMap(){
